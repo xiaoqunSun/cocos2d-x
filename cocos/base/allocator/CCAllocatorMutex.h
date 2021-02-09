@@ -59,8 +59,8 @@
 #define MUTEX_UNLOCK(m) \
     ReleaseMutex(m)
 #else
-#message "Unsupported platform for AllocatorMutex, Locking semantics will not be supported"
-#define MUTEX
+#warning "Unsupported platform for AllocatorMutex, Locking semantics will not be supported"
+#define MUTEX int
 #define MUTEX_INIT(...)
 #define MUTEX_LOCK(...)
 #define MUTEX_UNLOCK(...)

@@ -49,6 +49,10 @@ elseif(APPLE)
             ui/UIEditBox/iOS/UITextView+CCUITextInput.mm
             )
     endif()
+elseif(EMSCRIPTEN)
+    set(COCOS_UI_SPECIFIC_SRC
+        ui/UIEditBox/UIEditBoxImpl-stub.cpp
+        )
 elseif(LINUX)
     set(COCOS_UI_SPECIFIC_HEADER
         ui/UIEditBox/UIEditBoxImpl-linux.h

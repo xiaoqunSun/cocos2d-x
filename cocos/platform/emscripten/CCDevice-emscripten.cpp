@@ -24,25 +24,46 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
 
-#ifndef __PLATFORM_CCPLATFORMDEFINE_H__
-#define __PLATFORM_CCPLATFORMDEFINE_H__
-/// @cond DO_NOT_SHOW
-
 #include "platform/CCPlatformConfig.h"
+#if CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN
 
-#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
-#include "platform/mac/CCPlatformDefine-mac.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_IOS
-#include "platform/ios/CCPlatformDefine-ios.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
-#include "platform/android/CCPlatformDefine-android.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_WIN32
-#include "platform/win32/CCPlatformDefine-win32.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_LINUX
-#include "platform/linux/CCPlatformDefine-linux.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN
-#include "platform/emscripten/CCPlatformDefine-emscripten.h"
-#endif
+#include "platform/CCDevice.h"
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 
-/// @endcond
-#endif /* __PLATFORM_CCPLATFORMDEFINE_H__*/
+NS_CC_BEGIN
+
+int Device::getDPI()
+{
+    return 160;
+}
+
+void Device::setAccelerometerEnabled(bool isEnabled)
+{
+    // TODO: https://emscripten.org/docs/api_reference/html5.h.html?
+}
+
+void Device::setAccelerometerInterval(float interval)
+{
+    // TODO: https://emscripten.org/docs/api_reference/html5.h.html?
+}
+
+Data Device::getTextureDataForText(const char * text, const FontDefinition& textDefinition, TextAlign align, int &width, int &height, bool& hasPremultipliedAlpha)
+{
+    // TODO: implement
+    return Data();
+}
+
+void Device::setKeepScreenOn(bool value)
+{
+    // not possible?
+}
+
+void Device::vibrate(float duration)
+{
+    emscripten_vibrate(duration * 1000);
+}
+
+NS_CC_END
+
+#endif // CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN

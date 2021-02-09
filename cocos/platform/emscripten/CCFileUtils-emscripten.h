@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2010-2012 cocos2d-x.org
+Copyright (c) 2011      Laschweinski
 Copyright (c) 2013-2016 Chukong Technologies Inc.
 Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
@@ -23,26 +23,44 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
-
-#ifndef __PLATFORM_CCPLATFORMDEFINE_H__
-#define __PLATFORM_CCPLATFORMDEFINE_H__
-/// @cond DO_NOT_SHOW
+#ifndef __CC_FILEUTILS_EMSCRIPTEN_H__
+#define __CC_FILEUTILS_EMSCRIPTEN_H__
 
 #include "platform/CCPlatformConfig.h"
+#if CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN
 
-#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
-#include "platform/mac/CCPlatformDefine-mac.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_IOS
-#include "platform/ios/CCPlatformDefine-ios.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
-#include "platform/android/CCPlatformDefine-android.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_WIN32
-#include "platform/win32/CCPlatformDefine-win32.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_LINUX
-#include "platform/linux/CCPlatformDefine-linux.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN
-#include "platform/emscripten/CCPlatformDefine-emscripten.h"
-#endif
+#include "platform/CCFileUtils.h"
+#include "platform/CCPlatformMacros.h"
+#include "base/ccTypes.h"
+#include <string>
+#include <vector>
 
-/// @endcond
-#endif /* __PLATFORM_CCPLATFORMDEFINE_H__*/
+NS_CC_BEGIN
+
+/**
+ * @addtogroup platform
+ * @{
+ */
+
+//! @brief  Helper class to handle file operations
+class CC_DLL FileUtilsEmscripten : public FileUtils
+{
+    friend class FileUtils;
+protected:
+    FileUtilsEmscripten();
+public:
+    /* override functions */
+    bool init() override;
+    virtual std::string getWritablePath() const override;
+private:
+    virtual bool isFileExistInternal(const std::string& strFilePath) const override;
+};
+
+// end of platform group
+/// @}
+
+NS_CC_END
+
+#endif // CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN
+
+#endif    // __CC_FILEUTILS_EMSCRIPTEN_H__
