@@ -467,10 +467,12 @@ LayerColor::LayerColor()
 {
     // default blend function
     _blendFunc = BlendFunc::ALPHA_PREMULTIPLIED;
+    glGenBuffers(1,&_vbo);
 }
     
 LayerColor::~LayerColor()
 {
+    glDeleteBuffers(1,&_vbo);
 }
 
 /// blendFunc getter
@@ -541,7 +543,7 @@ bool LayerColor::initWithColor(const Color4B& color, GLfloat w, GLfloat h)
         _displayedColor.b = _realColor.b = color.b;
         _displayedOpacity = _realOpacity = color.a;
 
-        for (size_t i = 0; i<sizeof(_squareVertices) / sizeof( _squareVertices[0]); i++ )
+        for (size_t i = 0; i<4; i++ )
         {
             _squareVertices[i].x = 0.0f;
             _squareVertices[i].y = 0.0f;
@@ -592,10 +594,10 @@ void LayerColor::updateColor()
 {
     for( unsigned int i=0; i < 4; i++ )
     {
-        _squareColors[i].r = _displayedColor.r / 255.0f;
-        _squareColors[i].g = _displayedColor.g / 255.0f;
-        _squareColors[i].b = _displayedColor.b / 255.0f;
-        _squareColors[i].a = _displayedOpacity / 255.0f;
+        _vertexData[i]._squareColors.r = _displayedColor.r / 255.0f;
+        _vertexData[i]._squareColors.g = _displayedColor.g / 255.0f;
+        _vertexData[i]._squareColors.b = _displayedColor.b / 255.0f;
+        _vertexData[i]._squareColors.a = _displayedOpacity / 255.0f;
     }
 }
 
@@ -611,7 +613,7 @@ void LayerColor::draw(Renderer *renderer, const Mat4 &transform, uint32_t flags)
         pos.x = _squareVertices[i].x; pos.y = _squareVertices[i].y; pos.z = _positionZ;
         pos.w = 1;
         _modelViewTransform.transformVector(&pos);
-        _noMVPVertices[i] = Vec3(pos.x,pos.y,pos.z)/pos.w;
+        _vertexData[i]._noMVPVertices = Vec3(pos.x,pos.y,pos.z)/pos.w;
     }
 }
 
@@ -625,15 +627,20 @@ void LayerColor::onDraw(const Mat4& transform, uint32_t /*flags*/)
     //
     // Attributes
     //
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, 0, _noMVPVertices);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, 0, _squareColors);
+    glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(_vertexData),_vertexData,GL_DYNAMIC_DRAW);
+    
+    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION | GL::VERTEX_ATTRIB_FLAG_COLOR);
+    
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(V3F_C4F), (GLvoid*) offsetof(V3F_C4F,_noMVPVertices));
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, sizeof(V3F_C4F), (GLvoid*) offsetof(V3F_C4F,_squareColors));
 
     GL::blendFunc( _blendFunc.src, _blendFunc.dst );
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,4);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 std::string LayerColor::getDescription() const
@@ -757,25 +764,25 @@ void LayerGradient::updateColor()
     );
 
     // (-1, -1)
-    _squareColors[0].r = E.r + (S.r - E.r) * ((c + u.x + u.y) / (2.0f * c));
-    _squareColors[0].g = E.g + (S.g - E.g) * ((c + u.x + u.y) / (2.0f * c));
-    _squareColors[0].b = E.b + (S.b - E.b) * ((c + u.x + u.y) / (2.0f * c));
-    _squareColors[0].a = E.a + (S.a - E.a) * ((c + u.x + u.y) / (2.0f * c));
+    _vertexData[0]._squareColors.r = E.r + (S.r - E.r) * ((c + u.x + u.y) / (2.0f * c));
+    _vertexData[0]._squareColors.g = E.g + (S.g - E.g) * ((c + u.x + u.y) / (2.0f * c));
+    _vertexData[0]._squareColors.b = E.b + (S.b - E.b) * ((c + u.x + u.y) / (2.0f * c));
+    _vertexData[0]._squareColors.a = E.a + (S.a - E.a) * ((c + u.x + u.y) / (2.0f * c));
     // (1, -1)
-    _squareColors[1].r = E.r + (S.r - E.r) * ((c - u.x + u.y) / (2.0f * c));
-    _squareColors[1].g = E.g + (S.g - E.g) * ((c - u.x + u.y) / (2.0f * c));
-    _squareColors[1].b = E.b + (S.b - E.b) * ((c - u.x + u.y) / (2.0f * c));
-    _squareColors[1].a = E.a + (S.a - E.a) * ((c - u.x + u.y) / (2.0f * c));
+    _vertexData[1]._squareColors.r = E.r + (S.r - E.r) * ((c - u.x + u.y) / (2.0f * c));
+    _vertexData[1]._squareColors.g = E.g + (S.g - E.g) * ((c - u.x + u.y) / (2.0f * c));
+    _vertexData[1]._squareColors.b = E.b + (S.b - E.b) * ((c - u.x + u.y) / (2.0f * c));
+    _vertexData[1]._squareColors.a = E.a + (S.a - E.a) * ((c - u.x + u.y) / (2.0f * c));
     // (-1, 1)
-    _squareColors[2].r = E.r + (S.r - E.r) * ((c + u.x - u.y) / (2.0f * c));
-    _squareColors[2].g = E.g + (S.g - E.g) * ((c + u.x - u.y) / (2.0f * c));
-    _squareColors[2].b = E.b + (S.b - E.b) * ((c + u.x - u.y) / (2.0f * c));
-    _squareColors[2].a = E.a + (S.a - E.a) * ((c + u.x - u.y) / (2.0f * c));
+    _vertexData[2]._squareColors.r = E.r + (S.r - E.r) * ((c + u.x - u.y) / (2.0f * c));
+    _vertexData[2]._squareColors.g = E.g + (S.g - E.g) * ((c + u.x - u.y) / (2.0f * c));
+    _vertexData[2]._squareColors.b = E.b + (S.b - E.b) * ((c + u.x - u.y) / (2.0f * c));
+    _vertexData[2]._squareColors.a = E.a + (S.a - E.a) * ((c + u.x - u.y) / (2.0f * c));
     // (1, 1)
-    _squareColors[3].r = E.r + (S.r - E.r) * ((c - u.x - u.y) / (2.0f * c));
-    _squareColors[3].g = E.g + (S.g - E.g) * ((c - u.x - u.y) / (2.0f * c));
-    _squareColors[3].b = E.b + (S.b - E.b) * ((c - u.x - u.y) / (2.0f * c));
-    _squareColors[3].a = E.a + (S.a - E.a) * ((c - u.x - u.y) / (2.0f * c));
+    _vertexData[2]._squareColors.r = E.r + (S.r - E.r) * ((c - u.x - u.y) / (2.0f * c));
+    _vertexData[2]._squareColors.g = E.g + (S.g - E.g) * ((c - u.x - u.y) / (2.0f * c));
+    _vertexData[2]._squareColors.b = E.b + (S.b - E.b) * ((c - u.x - u.y) / (2.0f * c));
+    _vertexData[2]._squareColors.a = E.a + (S.a - E.a) * ((c - u.x - u.y) / (2.0f * c));
 }
 
 const Color3B& LayerGradient::getStartColor() const
@@ -891,10 +898,14 @@ LayerRadialGradient::LayerRadialGradient()
 , _uniformLocationRadius(0)
 , _uniformLocationExpand(0)
 , _blendFunc(BlendFunc::ALPHA_NON_PREMULTIPLIED)
-{ }
+{ 
+    glGenBuffers(1,&_vbo);
+}
 
 LayerRadialGradient::~LayerRadialGradient()
-{}
+{
+    glDeleteBuffers(1,&_vbo);
+}
 
 bool LayerRadialGradient::initWithColor(const cocos2d::Color4B &startColor, const cocos2d::Color4B &endColor, float radius, const Vec2& center, float expand)
 {
@@ -955,14 +966,18 @@ void LayerRadialGradient::onDraw(const Mat4& transform, uint32_t /*flags*/)
     //
     // Attributes
     //
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, _vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(_vertices),_vertices,GL_DYNAMIC_DRAW);
+    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
+    
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(_vertices[0]), 0);
     
     GL::blendFunc(_blendFunc.src, _blendFunc.dst);
     
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,4);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void LayerRadialGradient::setContentSize(const Size& size)

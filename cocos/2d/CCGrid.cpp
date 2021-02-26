@@ -134,6 +134,7 @@ bool GridBase::initWithSize(const Size& gridSize, Texture2D *texture, bool flipp
     bool ret = true;
     
     _active = false;
+    _veo = _vbo = 0;
     _reuseGrid = 0;
     _gridSize = gridSize;
     
@@ -174,6 +175,10 @@ GridBase::~GridBase()
     //TODO: ? why 2.0 comments this line:        setActive(false);
     CC_SAFE_RELEASE(_texture);
     CC_SAFE_RELEASE(_grabber);
+    if(_vbo)
+        glDeleteBuffers(1,&_vbo);
+    if(_veo)
+        glDeleteBuffers(1,&_veo);
 }
 
 // properties
@@ -371,7 +376,7 @@ Grid3D::Grid3D()
 , _indices(nullptr)
 , _needDepthTestForBlit(false)
 {
-
+    _vertexData = nullptr;
 }
 
 Grid3D::~Grid3D()
@@ -380,6 +385,7 @@ Grid3D::~Grid3D()
     CC_SAFE_FREE(_vertices);
     CC_SAFE_FREE(_indices);
     CC_SAFE_FREE(_originalVertices);
+    CC_SAFE_FREE(_vertexData);
 }
 
 void Grid3D::beforeBlit()
@@ -417,23 +423,34 @@ void Grid3D::afterBlit()
 
 void Grid3D::blit()
 {
+    if(_vbo == 0)
+        glGenBuffers(1,&_vbo);
     int n = _gridSize.width * _gridSize.height;
 
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION | GL::VERTEX_ATTRIB_FLAG_TEX_COORD );
     _shaderProgram->use();
     _shaderProgram->setUniformsForBuiltins();
-
+    
+    for (int i = 0;i<(_gridSize.width+1) * (1+_gridSize.height);++i)
+    {
+        _vertexData[i].vertices = ((Vec3*)_vertices)[i];
+        _vertexData[i].texCoords = ((Tex2F*)_texCoordinates)[i];
+    }
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    
     //
-    // Attributes
-    //
+    
+    glBufferData(GL_ARRAY_BUFFER,sizeof(_vertexData[0])*(_gridSize.width+1) * (1+_gridSize.height),_vertexData,GL_DYNAMIC_DRAW);
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]) , (GLvoid*) offsetof(V3F_T2F,vertices));
+    
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]), (GLvoid*) offsetof(V3F_T2F,texCoords));
 
-    // position
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, 0, _vertices);
-
-    // texCoords
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, 0, _texCoordinates);
-
-    glDrawElements(GL_TRIANGLES, (GLsizei) n*6, GL_UNSIGNED_SHORT, _indices);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,_veo);
+    glDrawElements(GL_TRIANGLES, (GLsizei) n*6, GL_UNSIGNED_SHORT, nullptr);
+    CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,n*6);
+    
+    glBindBuffer(GL_ARRAY_BUFFER,0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
 }
 
 void Grid3D::calculateVertexPoints()
@@ -447,6 +464,7 @@ void Grid3D::calculateVertexPoints()
     CC_SAFE_FREE(_originalVertices);
     CC_SAFE_FREE(_texCoordinates);
     CC_SAFE_FREE(_indices);
+    CC_SAFE_FREE(_vertexData);
 
     unsigned int numOfPoints = (_gridSize.width+1) * (_gridSize.height+1);
 
@@ -454,7 +472,8 @@ void Grid3D::calculateVertexPoints()
     _originalVertices = malloc(numOfPoints * sizeof(Vec3));
     _texCoordinates = malloc(numOfPoints * sizeof(Vec2));
     _indices = (GLushort*)malloc(_gridSize.width * _gridSize.height * sizeof(GLushort) * 6);
-
+    _vertexData = (V3F_T2F*)malloc(numOfPoints * sizeof(V3F_T2F));
+    
     GLfloat *vertArray = (GLfloat*)_vertices;
     GLfloat *texArray = (GLfloat*)_texCoordinates;
     GLushort *idxArray = _indices;
@@ -510,6 +529,12 @@ void Grid3D::calculateVertexPoints()
     }
 
     memcpy(_originalVertices, _vertices, (_gridSize.width+1) * (_gridSize.height+1) * sizeof(Vec3));
+    
+    if(_veo == 0)
+        glGenBuffers(1,&_veo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,_veo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,(_gridSize.width * _gridSize.height * sizeof(GLushort) * 6),_indices,GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
 }
 
 Vec3 Grid3D::getVertex(const Vec2& pos) const
@@ -563,7 +588,7 @@ TiledGrid3D::TiledGrid3D()
     , _originalVertices(nullptr)
     , _indices(nullptr)
 {
-
+    _vertexData = nullptr;
 }
 
 TiledGrid3D::~TiledGrid3D()
@@ -572,6 +597,7 @@ TiledGrid3D::~TiledGrid3D()
     CC_SAFE_FREE(_vertices);
     CC_SAFE_FREE(_originalVertices);
     CC_SAFE_FREE(_indices);
+    CC_SAFE_FREE(_vertexData);
 }
 
 TiledGrid3D* TiledGrid3D::create(const Size& gridSize)
@@ -656,26 +682,51 @@ TiledGrid3D* TiledGrid3D::create(const Size& gridSize, Texture2D *texture, bool 
 
 void TiledGrid3D::blit()
 {
+    if(_vbo == 0)
+        glGenBuffers(1,&_vbo);
     int n = _gridSize.width * _gridSize.height;
 
     
     _shaderProgram->use();
     _shaderProgram->setUniformsForBuiltins();
 
+    
+    for (int i = 0;i<n*4;++i)
+    {
+        _vertexData[i].vertices = ((Vec3*)_vertices)[i];
+        _vertexData[i].texCoords = ((Tex2F*)_texCoordinates)[i];
+    }
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    
+    //
+    
+    glBufferData(GL_ARRAY_BUFFER,sizeof(_vertexData[0])*(n*4),_vertexData,GL_DYNAMIC_DRAW);
+    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION | GL::VERTEX_ATTRIB_FLAG_TEX_COORD );
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]) , (GLvoid*) offsetof(V3F_T2F,vertices));
+    
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]), (GLvoid*) offsetof(V3F_T2F,texCoords));
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,_veo);
+    glDrawElements(GL_TRIANGLES, (GLsizei) n*6, GL_UNSIGNED_SHORT, nullptr);
+    CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,n*6);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
+
+    
     //
     // Attributes
     //
-    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION | GL::VERTEX_ATTRIB_FLAG_TEX_COORD );
-
-    // position
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, 0, _vertices);
-
-    // texCoords
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, 0, _texCoordinates);
-
-    glDrawElements(GL_TRIANGLES, (GLsizei)n*6, GL_UNSIGNED_SHORT, _indices);
-
-    CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,n*6);
+//    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION | GL::VERTEX_ATTRIB_FLAG_TEX_COORD );
+//
+//    // position
+//    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, 0, _vertices);
+//
+//    // texCoords
+//    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, 0, _texCoordinates);
+//
+//    glDrawElements(GL_TRIANGLES, (GLsizei)n*6, GL_UNSIGNED_SHORT, _indices);
+//
+//    CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,n*6);
 }
 
 void TiledGrid3D::calculateVertexPoints()
@@ -689,11 +740,13 @@ void TiledGrid3D::calculateVertexPoints()
     CC_SAFE_FREE(_originalVertices);
     CC_SAFE_FREE(_texCoordinates);
     CC_SAFE_FREE(_indices);
+    CC_SAFE_FREE(_vertexData);
 
     _vertices = malloc(numQuads*4*sizeof(Vec3));
     _originalVertices = malloc(numQuads*4*sizeof(Vec3));
     _texCoordinates = malloc(numQuads*4*sizeof(Vec2));
     _indices = (GLushort*)malloc(numQuads*6*sizeof(GLushort));
+    _vertexData = (V3F_T2F*)malloc(numQuads*4*sizeof(V3F_T2F));
 
     GLfloat *vertArray = (GLfloat*)_vertices;
     GLfloat *texArray = (GLfloat*)_texCoordinates;
@@ -755,6 +808,12 @@ void TiledGrid3D::calculateVertexPoints()
     }
     
     memcpy(_originalVertices, _vertices, numQuads * 12 * sizeof(GLfloat));
+    
+    if(_veo == 0)
+        glGenBuffers(1,&_veo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,_veo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,(numQuads*6*sizeof(GLushort)),_indices,GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0);
 }
 
 void TiledGrid3D::setTile(const Vec2& pos, const Quad3& coords)

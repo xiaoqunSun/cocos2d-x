@@ -422,8 +422,9 @@ bool MenuItemFont::initWithString(const std::string& value, const ccMenuCallback
 
     _fontName = _globalFontName;
     _fontSize = _globalFontSize;
-
-    Label *label = Label::createWithSystemFont(value, _fontName, _fontSize);
+    _fontName = "fonts/arial.ttf";
+    Label *label = Label::createWithTTF(value, _fontName, _fontSize);
+//    Label *label = Label::createWithSystemFont(value, _fontName, _fontSize);
     if (MenuItemLabel::initWithLabel(label, callback))
     {
         // do something ?
@@ -433,9 +434,9 @@ bool MenuItemFont::initWithString(const std::string& value, const ccMenuCallback
 
 void MenuItemFont::setFontSizeObj(int s)
 {
-    _fontSize = s;
-    dynamic_cast<Label*>(_label)->setSystemFontSize(_fontSize);
-    this->setContentSize(dynamic_cast<Label*>(_label)->getContentSize());
+//    _fontSize = s;
+//    dynamic_cast<Label*>(_label)->setSystemFontSize(_fontSize);
+//    this->setContentSize(dynamic_cast<Label*>(_label)->getContentSize());
 }
 
 int MenuItemFont::getFontSizeObj() const
@@ -445,9 +446,9 @@ int MenuItemFont::getFontSizeObj() const
 
 void MenuItemFont::setFontNameObj(const std::string& name)
 {
-    _fontName = name;
-    dynamic_cast<Label*>(_label)->setSystemFontName(_fontName);
-    this->setContentSize(dynamic_cast<Label*>(_label)->getContentSize());
+//    _fontName = name;
+//    dynamic_cast<Label*>(_label)->setSystemFontName(_fontName);
+//    this->setContentSize(dynamic_cast<Label*>(_label)->getContentSize());
 }
 
 const std::string& MenuItemFont::getFontNameObj() const

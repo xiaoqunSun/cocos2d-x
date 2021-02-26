@@ -80,6 +80,9 @@ bool ProgressTimer::initWithSprite(Sprite* sp)
 
     // shader state
     setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR, sp->getTexture()));
+    
+    glGenBuffers(1,&_vbo);
+
     return true;
 }
 
@@ -87,6 +90,7 @@ ProgressTimer::~ProgressTimer()
 {
     CC_SAFE_FREE(_vertexData);
     CC_SAFE_RELEASE(_sprite);
+    glDeleteBuffers(1,&_vbo);
 }
 
 void ProgressTimer::setPercentage(float percentage)
@@ -510,15 +514,21 @@ void ProgressTimer::onDraw(const Mat4 &transform, uint32_t /*flags*/)
     getGLProgram()->setUniformsForBuiltins(transform);
 
     GL::blendFunc( _sprite->getBlendFunc().src, _sprite->getBlendFunc().dst );
-
-    GL::enableVertexAttribs(GL::VERTEX_ATTRIB_FLAG_POS_COLOR_TEX );
-
     GL::bindTexture2D( _sprite->getTexture() );
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    
 
-    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]) , &_vertexData[0].vertices);
-    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]), &_vertexData[0].texCoords);
-    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(_vertexData[0]), &_vertexData[0].colors);
-
+    glBufferData(GL_ARRAY_BUFFER,sizeof(_vertexData[0])*_vertexDataCount,_vertexData,GL_DYNAMIC_DRAW);
+    
+    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION | GL::VERTEX_ATTRIB_FLAG_COLOR | GL::VERTEX_ATTRIB_FLAG_TEX_COORD );
+  
+    
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]) , (GLvoid*) offsetof(V2F_C4B_T2F,vertices));
+    
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]), (GLvoid*) offsetof(V2F_C4B_T2F,texCoords));
+    
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(_vertexData[0]), (GLvoid*) offsetof(V2F_C4B_T2F,colors));
+    
     if(_type == Type::RADIAL)
     {
         glDrawArrays(GL_TRIANGLE_FAN, 0, _vertexDataCount);
@@ -539,6 +549,8 @@ void ProgressTimer::onDraw(const Mat4 &transform, uint32_t /*flags*/)
             CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(2,_vertexDataCount);
         }
     }
+    glBindBuffer(GL_ARRAY_BUFFER,0);
+
 }
 
 void ProgressTimer::draw(Renderer *renderer, const Mat4 &transform, uint32_t flags)

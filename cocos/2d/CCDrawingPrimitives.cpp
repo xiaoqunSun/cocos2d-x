@@ -71,6 +71,7 @@ static Color4F s_color(1.0f,1.0f,1.0f,1.0f);
 static int s_pointSizeLocation = -1;
 static GLfloat s_pointSize = 1.0f;
 
+GLuint _vbo = 0;
 
 static void lazy_init()
 {
@@ -88,6 +89,7 @@ static void lazy_init()
         CHECK_GL_ERROR_DEBUG();
 
         s_initialized = true;
+        glGenBuffers(1,&_vbo);
     }
 }
 
@@ -101,6 +103,8 @@ void free()
 {
     CC_SAFE_RELEASE_NULL(s_shader);
     s_initialized = false;
+    if(_vbo)
+        glDeleteBuffers(1,&_vbo);
 }
 
 void drawPoint(const Vec2& point)
@@ -118,11 +122,16 @@ void drawPoint(const Vec2& point)
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*) &s_color.r, 1);
     s_shader->setUniformLocationWith1f(s_pointSizeLocation, s_pointSize);
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, &p);
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(p),&p,GL_DYNAMIC_DRAW);
+
+    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(p), 0);
 
     glDrawArrays(GL_POINTS, 0, 1);
 
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,1);
+    glBindBuffer(GL_ARRAY_BUFFER,1);
 }
 
 void drawPoints( const Vec2 *points, unsigned int numberOfPoints )
@@ -135,10 +144,15 @@ void drawPoints( const Vec2 *points, unsigned int numberOfPoints )
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*) &s_color.r, 1);
     s_shader->setUniformLocationWith1f(s_pointSizeLocation, s_pointSize);
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, points);
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(Vec2)*numberOfPoints,points,GL_DYNAMIC_DRAW);
+
+    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE ,sizeof(Vec2),0);
     glDrawArrays(GL_POINTS, 0, (GLsizei) numberOfPoints);
 
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1, numberOfPoints);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 
@@ -155,11 +169,16 @@ void drawLine(const Vec2& origin, const Vec2& destination)
     s_shader->setUniformsForBuiltins();
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*) &s_color.r, 1);
 
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(Vec2)*2,vertices,GL_DYNAMIC_DRAW);
+
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, vertices);
+    
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(Vec2), 0);
     glDrawArrays(GL_LINES, 0, 2);
 
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,2);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void drawRect( Vec2 origin, Vec2 destination )
@@ -190,9 +209,12 @@ void drawPoly(const Vec2 *poli, unsigned int numberOfPoints, bool closePolygon)
     s_shader->setUniformsForBuiltins();
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*) &s_color.r, 1);
 
-    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(Vec2)*numberOfPoints,poli,GL_DYNAMIC_DRAW);
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, poli);
+    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
+    
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(Vec2),0);
 
     if( closePolygon )
         glDrawArrays(GL_LINE_LOOP, 0, (GLsizei) numberOfPoints);
@@ -200,6 +222,7 @@ void drawPoly(const Vec2 *poli, unsigned int numberOfPoints, bool closePolygon)
         glDrawArrays(GL_LINE_STRIP, 0, (GLsizei) numberOfPoints);
 
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1, numberOfPoints);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void drawSolidPoly(const Vec2 *poli, unsigned int numberOfPoints, Color4F color)
@@ -210,12 +233,16 @@ void drawSolidPoly(const Vec2 *poli, unsigned int numberOfPoints, Color4F color)
     s_shader->setUniformsForBuiltins();
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*) &color.r, 1);
 
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(Vec2)*numberOfPoints,poli,GL_DYNAMIC_DRAW);
+
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, poli);
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(Vec2),0);
     glDrawArrays(GL_TRIANGLE_FAN, 0, (GLsizei) numberOfPoints);
 
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1, numberOfPoints);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void drawCircle( const Vec2& center, float radius, float angle, unsigned int segments, bool drawLineToCenter, float scaleX, float scaleY)
@@ -247,14 +274,19 @@ void drawCircle( const Vec2& center, float radius, float angle, unsigned int seg
     s_shader->setUniformsForBuiltins();
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*) &s_color.r, 1);
 
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(GLfloat)*2*(segments+additionalSegment),vertices,GL_DYNAMIC_DRAW);
+
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, vertices);
+
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*2, 0);
     glDrawArrays(GL_LINE_STRIP, 0, (GLsizei) segments+additionalSegment);
 
     ::free( vertices );
 
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,segments+additionalSegment);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void drawCircle( const Vec2& center, float radius, float angle, unsigned int segments, bool drawLineToCenter)
@@ -287,15 +319,20 @@ void drawSolidCircle( const Vec2& center, float radius, float angle, unsigned in
     s_shader->setUniformsForBuiltins();
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*) &s_color.r, 1);
     
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(GLfloat)*2*(segments+1),vertices,GL_DYNAMIC_DRAW);
+
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
+
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*2, 0);
     
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, vertices);
 
     glDrawArrays(GL_TRIANGLE_FAN, 0, (GLsizei) segments+1);
     
     ::free( vertices );
     
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,segments+1);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void drawSolidCircle( const Vec2& center, float radius, float angle, unsigned int segments)
@@ -323,13 +360,20 @@ void drawQuadBezier(const Vec2& origin, const Vec2& control, const Vec2& destina
     s_shader->setUniformsForBuiltins();
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*) &s_color.r, 1);
 
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(GLfloat)*2*(segments+1),vertices,GL_DYNAMIC_DRAW);
+
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*2, 0);
+
+
+  
     glDrawArrays(GL_LINE_STRIP, 0, (GLsizei) segments + 1);
     CC_SAFE_DELETE_ARRAY(vertices);
 
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,segments+1);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void drawCatmullRom( PointArray *points, unsigned int segments )
@@ -375,13 +419,18 @@ void drawCardinalSpline( PointArray *config, float tension,  unsigned int segmen
     s_shader->setUniformsForBuiltins();
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*)&s_color.r, 1);
 
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(GLfloat)*2*(segments+1),vertices,GL_DYNAMIC_DRAW);
+
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*2, 0);
+
     glDrawArrays(GL_LINE_STRIP, 0, (GLsizei) segments + 1);
 
     CC_SAFE_DELETE_ARRAY(vertices);
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,segments+1);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void drawCubicBezier(const Vec2& origin, const Vec2& control1, const Vec2& control2, const Vec2& destination, unsigned int segments)
@@ -404,13 +453,18 @@ void drawCubicBezier(const Vec2& origin, const Vec2& control1, const Vec2& contr
     s_shader->setUniformsForBuiltins();
     s_shader->setUniformLocationWith4fv(s_colorLocation, (GLfloat*) &s_color.r, 1);
 
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(GLfloat)*2*(segments+1),vertices,GL_DYNAMIC_DRAW);
+
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION );
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*2, 0);
+
     glDrawArrays(GL_LINE_STRIP, 0, (GLsizei) segments + 1);
     CC_SAFE_DELETE_ARRAY(vertices);
 
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,segments+1);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void setDrawColor4F( GLfloat r, GLfloat g, GLfloat b, GLfloat a )

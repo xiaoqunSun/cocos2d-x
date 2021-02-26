@@ -403,15 +403,25 @@ CC_CONSTRUCTOR_ACCESS:
     bool initWithColor(const Color4B& color);
 
 protected:
+    struct V3F_C4F
+    {
+        Vec3       _noMVPVertices;
+        Color4F        _squareColors;
+    };
+    V3F_C4F _vertexData[4];
+//    Vec3 _noMVPVertices[4];
+    Vec2 _squareVertices[4];
+//    Color4F  _squareColors[4];
+//    
     void onDraw(const Mat4& transform, uint32_t flags);
 
     virtual void updateColor() override;
 
     BlendFunc _blendFunc;
-    Vec2 _squareVertices[4];
-    Color4F  _squareColors[4];
+
     CustomCommand _customCommand;
-    Vec3 _noMVPVertices[4];
+    
+    GLuint _vbo;
 private:
     CC_DISALLOW_COPY_AND_ASSIGN(LayerColor);
 
@@ -628,6 +638,7 @@ protected:
     
     
 private:
+    GLuint _vbo;
     void convertColor4B24F(Color4F& outColor, const Color4B& inColor);
     
     Color4B _startColor;

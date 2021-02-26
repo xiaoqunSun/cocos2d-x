@@ -186,9 +186,10 @@ protected:
     Vec2* _vertices;
     GLubyte* _colorPointer;
     Tex2F* _texCoords;
+    V2F_C4B_T2F* _vertexData;
     
     CustomCommand _customCommand;
-
+    GLuint _vbo;
 private:
     CC_DISALLOW_COPY_AND_ASSIGN(MotionStreak);
 };

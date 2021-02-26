@@ -146,6 +146,15 @@ protected:
     GLProgram* _shaderProgram;
     Director::Projection _directorProjection;
     Rect _gridRect;
+    struct V3F_T2F
+    {
+        Vec3     vertices;      
+        Tex2F    texCoords;
+    };
+    
+    V3F_T2F* _vertexData;
+    GLuint _vbo;
+    GLuint _veo;
 };
 
 /**

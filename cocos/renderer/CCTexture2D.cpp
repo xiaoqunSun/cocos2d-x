@@ -448,6 +448,7 @@ Texture2D::Texture2D()
 , _valid(true)
 , _alphaTexture(nullptr)
 {
+    _vbo = 0;
 }
 
 Texture2D::~Texture2D()
@@ -466,6 +467,8 @@ Texture2D::~Texture2D()
     {
         GL::deleteTexture(_name);
     }
+    if(_vbo)
+        glDeleteBuffers(1,&_vbo);
 }
 
 void Texture2D::releaseGLTexture()
@@ -1157,59 +1160,100 @@ bool Texture2D::initWithString(const char *text, const FontDefinition& textDefin
 
 
 // implementation Texture2D (Drawing)
+struct V2F_T2F
+{
+    Vec2       vertices;
+    Tex2F      texCoords;
+};
 
 void Texture2D::drawAtPoint(const Vec2& point)
 {
-    GLfloat    coordinates[] = {
-        0.0f,    _maxT,
-        _maxS,_maxT,
-        0.0f,    0.0f,
-        _maxS,0.0f };
+    if(_vbo == 0)
+        glGenBuffers(1,&_vbo);
+    V2F_T2F _vertexData[4];
+    _vertexData[0].texCoords = { 0.0f,    _maxT};
+    _vertexData[1].texCoords = { _maxS,_maxT};
+    _vertexData[2].texCoords = { 0.0f,    0.0f};
+    _vertexData[3].texCoords = { _maxS,0.0f};
+//    GLfloat    coordinates[] = {
+//        0.0f,    _maxT,
+//        _maxS,_maxT,
+//        0.0f,    0.0f,
+//        _maxS,0.0f };
 
     GLfloat    width = (GLfloat)_pixelsWide * _maxS,
         height = (GLfloat)_pixelsHigh * _maxT;
 
-    GLfloat        vertices[] = {    
-        point.x,            point.y,
-        width + point.x,    point.y,
-        point.x,            height  + point.y,
-        width + point.x,    height  + point.y };
+    _vertexData[0].vertices = { point.x,            point.y};
+    _vertexData[1].vertices = { width + point.x,    point.y};
+    _vertexData[2].vertices = { point.x,            height  + point.y};
+    _vertexData[3].vertices = { width + point.x,    height  + point.y};
+//    GLfloat        vertices[] = {    
+//        point.x,            point.y,
+//        width + point.x,    point.y,
+//        point.x,            height  + point.y,
+//        width + point.x,    height  + point.y };
 
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION | GL::VERTEX_ATTRIB_FLAG_TEX_COORD );
     _shaderProgram->use();
     _shaderProgram->setUniformsForBuiltins();
 
     GL::bindTexture2D( _name );
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    
+
+    glBufferData(GL_ARRAY_BUFFER,sizeof(_vertexData),_vertexData,GL_DYNAMIC_DRAW);
 
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, vertices);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, 0, coordinates);
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(V2F_T2F), (GLvoid*) offsetof(V2F_T2F,vertices));
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, sizeof(V2F_T2F), (GLvoid*) offsetof(V2F_T2F,texCoords));
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void Texture2D::drawInRect(const Rect& rect)
 {
-    GLfloat    coordinates[] = {    
-        0.0f,    _maxT,
-        _maxS,_maxT,
-        0.0f,    0.0f,
-        _maxS,0.0f };
+    if(_vbo == 0)
+        glGenBuffers(1,&_vbo);
+    V2F_T2F _vertexData[4];
+    _vertexData[0].texCoords = { 0.0f,    _maxT};
+    _vertexData[1].texCoords = { _maxS,_maxT};
+    _vertexData[2].texCoords = { 0.0f,    0.0f};
+    _vertexData[3].texCoords = { _maxS,0.0f};
+//    GLfloat    coordinates[] = {    
+//        0.0f,    _maxT,
+//        _maxS,_maxT,
+//        0.0f,    0.0f,
+//        _maxS,0.0f };
 
-    GLfloat    vertices[] = {    rect.origin.x,        rect.origin.y,                            /*0.0f,*/
-        rect.origin.x + rect.size.width,        rect.origin.y,                            /*0.0f,*/
-        rect.origin.x,                            rect.origin.y + rect.size.height,        /*0.0f,*/
-        rect.origin.x + rect.size.width,        rect.origin.y + rect.size.height,        /*0.0f*/ };
+//    GLfloat    vertices[] = {    rect.origin.x,        rect.origin.y,                            /*0.0f,*/
+//        rect.origin.x + rect.size.width,        rect.origin.y,                            /*0.0f,*/
+//        rect.origin.x,                            rect.origin.y + rect.size.height,        /*0.0f,*/
+//        rect.origin.x + rect.size.width,        rect.origin.y + rect.size.height,        /*0.0f*/ };
 
+    _vertexData[0].vertices = { rect.origin.x,        rect.origin.y};
+    _vertexData[1].vertices = { rect.origin.x + rect.size.width,        rect.origin.y};
+    _vertexData[2].vertices = { rect.origin.x,                            rect.origin.y + rect.size.height};
+    _vertexData[3].vertices = { rect.origin.x + rect.size.width,        rect.origin.y + rect.size.height};
+    
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION | GL::VERTEX_ATTRIB_FLAG_TEX_COORD );
     _shaderProgram->use();
     _shaderProgram->setUniformsForBuiltins();
 
     GL::bindTexture2D( _name );
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, vertices);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, 0, coordinates);
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    
+
+    glBufferData(GL_ARRAY_BUFFER,sizeof(_vertexData),_vertexData,GL_DYNAMIC_DRAW);
+
+
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(V2F_T2F), (GLvoid*) offsetof(V2F_T2F,vertices));
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, sizeof(V2F_T2F), (GLvoid*) offsetof(V2F_T2F,texCoords));
+
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void Texture2D::PVRImagesHavePremultipliedAlpha(bool haveAlphaPremultiplied)

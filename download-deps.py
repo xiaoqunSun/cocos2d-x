@@ -44,6 +44,8 @@ import traceback
 import distutils
 import fileinput
 import json
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 from optparse import OptionParser
 from time import time

@@ -198,6 +198,7 @@ protected:
     CustomCommand _customCommand;
 
     bool _reverseDirection;
+    GLuint _vbo;
 
 private:
     CC_DISALLOW_COPY_AND_ASSIGN(ProgressTimer);

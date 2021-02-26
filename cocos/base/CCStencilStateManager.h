@@ -39,6 +39,7 @@ class CC_DLL StencilStateManager
 {
 public:
     StencilStateManager();
+    ~StencilStateManager();
     void onBeforeVisit();
     void onAfterDrawStencil();
     void onAfterVisit();
@@ -72,6 +73,7 @@ private:
     GLclampf _currentAlphaTestRef;
     
     GLint _mask_layer_le;
+    GLuint _vbo;
 };
 
 NS_CC_END

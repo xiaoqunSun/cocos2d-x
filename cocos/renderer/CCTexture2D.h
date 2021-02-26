@@ -556,6 +556,8 @@ protected:
     std::string _filePath;
 
     Texture2D* _alphaTexture;
+    
+    GLuint _vbo;
 };
 
 

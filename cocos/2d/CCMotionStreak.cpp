@@ -53,6 +53,7 @@ MotionStreak::MotionStreak()
 , _colorPointer(nullptr)
 , _texCoords(nullptr)
 {
+    glGenBuffers(1,&_vbo);
 }
 
 MotionStreak::~MotionStreak()
@@ -63,6 +64,8 @@ MotionStreak::~MotionStreak()
     CC_SAFE_FREE(_vertices);
     CC_SAFE_FREE(_colorPointer);
     CC_SAFE_FREE(_texCoords);
+    CC_SAFE_FREE(_vertexData);
+    glDeleteBuffers(1,&_vbo);
 }
 
 MotionStreak* MotionStreak::create(float fade, float minSeg, float stroke, const Color3B& color, const std::string& path)
@@ -124,7 +127,9 @@ bool MotionStreak::initWithFade(float fade, float minSeg, float stroke, const Co
     _vertices = (Vec2*)malloc(sizeof(Vec2) * _maxPoints * 2);
     _texCoords = (Tex2F*)malloc(sizeof(Tex2F) * _maxPoints * 2);
     _colorPointer =  (GLubyte*)malloc(sizeof(GLubyte) * _maxPoints * 2 * 4);
-
+    
+    _vertexData = (V2F_C4B_T2F*)malloc(sizeof(V2F_C4B_T2F) * _maxPoints * 2);
+    
     // Set blend mode
     _blendFunc = BlendFunc::ALPHA_NON_PREMULTIPLIED;
 
@@ -387,13 +392,30 @@ void MotionStreak::onDraw(const Mat4 &transform, uint32_t /*flags*/)
     GL::blendFunc( _blendFunc.src, _blendFunc.dst );
 
     GL::bindTexture2D( _texture );
+    for(int i=0;i< _nuPoints * 2;++i)
+    {
+        _vertexData[i].vertices = _vertices[i];
+        _vertexData[i].texCoords = _texCoords[i];
+        _vertexData[i].colors = ((Color4B*)_colorPointer)[i];
+    }
+    glBindBuffer(GL_ARRAY_BUFFER,_vbo);
+    
 
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, _vertices);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, 0, _texCoords);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, _colorPointer);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(_vertexData[0])*_nuPoints * 2,_vertexData,GL_DYNAMIC_DRAW);
+
+//    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, _vertices);
+//    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, 0, _texCoords);
+//    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, _colorPointer);
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]) , (GLvoid*) offsetof(V2F_C4B_T2F,vertices));
+    
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, sizeof(_vertexData[0]), (GLvoid*) offsetof(V2F_C4B_T2F,texCoords));
+    
+    glVertexAttribPointer( GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(_vertexData[0]), (GLvoid*) offsetof(V2F_C4B_T2F,colors));
+    
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, (GLsizei)_nuPoints*2);
     CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1, _nuPoints*2);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void MotionStreak::draw(Renderer *renderer, const Mat4 &transform, uint32_t flags)

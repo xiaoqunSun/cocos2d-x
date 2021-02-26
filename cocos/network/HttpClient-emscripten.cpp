@@ -278,12 +278,11 @@ namespace network
             attr.requestData = request->getRequestData();
             attr.requestDataSize = request->getRequestDataSize();
         }
-
+        attr.userData = (void*)userData;
         attr.onsuccess = onRequestComplete;
         attr.onerror = onRequestComplete;
-        attr.timeoutMSecs = HttpClient::getInstance()->getTimeoutForConnect() + HttpClient::getInstance()->getTimeoutForRead();
+        attr.timeoutMSecs = 1000*(HttpClient::getInstance()->getTimeoutForConnect() + HttpClient::getInstance()->getTimeoutForRead());
         emscripten_fetch_t *fetch = emscripten_fetch(&attr, response->getHttpRequest()->getUrl());
-        fetch->userData = userData;
     }
 
     void HttpClient::clearResponseAndRequestQueue()

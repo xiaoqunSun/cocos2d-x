@@ -51,6 +51,11 @@ AudioEngineImpl::~AudioEngineImpl()
 
 bool AudioEngineImpl::init()
 {
+    SDL_Init(SDL_INIT_AUDIO);
+
+  	int ret = Mix_OpenAudio(0, 0, 0, 0); // we ignore all these..
+  	assert(ret == 0);
+
     mapChannelInfo.clear();
     mapSound.clear();
 
@@ -115,7 +120,7 @@ bool AudioEngineImpl::resume(int audioID)
             float volume = mapChannelInfo[audioID].volume;
             volume = volume > 1.0 ? 1.0 : volume;
             volume = volume < 0.0 ? 0.0 : volume;
-            Mix_VolumeChunk(mapChannelInfo[audioID].sound, volume * MIX_MAX_VOLUME);
+            //Mix_VolumeChunk(mapChannelInfo[audioID].sound, volume * MIX_MAX_VOLUME);
             int channel = Mix_PlayChannel(-1, mapChannelInfo[audioID].sound, mapChannelInfo[audioID].loop ? -1 : 0);
             if(channel < 0) {
                 return false;

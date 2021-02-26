@@ -36,6 +36,10 @@
 #include <time.h>
 #include <fcntl.h>
 
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN)
+#include <emscripten.h>
+#endif
+
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <io.h>
 #include <WS2tcpip.h>
@@ -175,7 +179,11 @@ void log(const char * format, ...)
 
 #if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
     __android_log_print(ANDROID_LOG_DEBUG, "cocos2d-x debug info", "%s", buf);
-
+#elif CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN
+    EM_ASM_ARGS({
+    var msg = UTF8ToString($0);
+    console.log("[lua]"+msg);
+  }, buf);
 #elif CC_TARGET_PLATFORM ==  CC_PLATFORM_WIN32 || CC_TARGET_PLATFORM == CC_PLATFORM_WINRT
 
     int pos = 0;
