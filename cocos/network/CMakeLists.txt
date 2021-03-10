@@ -7,6 +7,7 @@ if(EMSCRIPTEN)
         network/HttpClient-emscripten.cpp
         network/CCDownloader.cpp
         network/CCDownloader-emscripten.cpp
+        network/WebSocket-emscripten.cpp
         network/Uri.cpp
         )
 elseif(ANDROID)

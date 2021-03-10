@@ -24,8 +24,9 @@
  ****************************************************************************/
 #ifndef __LUA_WEB_SOCKET_H__
 #define __LUA_WEB_SOCKET_H__
+#include "platform/CCPlatformConfig.h"
 
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID || CC_TARGET_PLATFORM == CC_PLATFORM_WIN32 || CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS || CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN || CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID || CC_TARGET_PLATFORM == CC_PLATFORM_WIN32 || CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,8 +35,12 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN)
+#include "network/WebSocket-emscripten.h"
+#else
 #include "network/WebSocket.h"
+#endif
+
 
 ///@cond
 class LuaWebSocket: public cocos2d::network::WebSocket,public cocos2d::network::WebSocket::Delegate

@@ -64,6 +64,42 @@ Application::~Application()
     sm_pSharedApplication = nullptr;
 }
 
+void Application::start()
+{
+    initGLContextAttrs();
+    // Initialize instance and cocos2d.
+    if (! applicationDidFinishLaunching())
+    {
+        return ;
+    }
+
+    auto director = Director::getInstance();
+    auto glview = director->getOpenGLView();
+
+    // Retain glview to avoid glview being released in the while loop
+    glview->retain();
+}
+void Application::tick()
+{
+    auto director = Director::getInstance();
+    auto glview = director->getOpenGLView();
+
+    director->mainLoop();
+    glview->pollEvents();
+}
+void Application::end()
+{
+    auto director = Director::getInstance();
+    auto glview = director->getOpenGLView();
+
+    if (glview->isOpenGLReady())
+    {
+        director->end();
+        director->mainLoop();
+        director = nullptr;
+    }
+    glview->release();
+}
 extern "C" void mainLoopIter(void)
 {
     auto director = Director::getInstance();

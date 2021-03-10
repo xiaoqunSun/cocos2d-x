@@ -108,6 +108,10 @@ public:
      @brief Get target platform
      */
     virtual Platform getTargetPlatform() override;
+
+    void start();
+    void tick();
+    void end();
 protected:
     long       _animationInterval;  //micro second
     std::string _resourceRootPath;

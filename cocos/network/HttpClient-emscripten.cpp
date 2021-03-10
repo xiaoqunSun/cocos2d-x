@@ -266,10 +266,14 @@ namespace network
                 std::string value = header.substr(pos + 1);
                 userData->headerStrings.push_back(key);
                 userData->headerStrings.push_back(value);
-                userData->headerCStrings.push_back(key.c_str());
-                userData->headerCStrings.push_back(value.c_str());
             }
         }
+        for (auto &str : userData->headerStrings)
+        {
+            userData->headerCStrings.push_back(str.c_str());
+        }
+
+        userData->headerCStrings.push_back(0);
         attr.requestHeaders = userData->headerCStrings.data();
 
         // post data

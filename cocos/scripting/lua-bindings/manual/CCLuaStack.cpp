@@ -241,6 +241,9 @@ int LuaStack::executeScriptFile(const char* filename)
 {
     CCAssert(filename, "CCLuaStack::executeScriptFile() - invalid filename");
 
+    bool notify = FileUtils::getInstance()->isPopupNotify();
+    FileUtils::getInstance()->setPopupNotify(false);
+    CCLOG("executeScriptFile %s==>",filename);
     std::string buf(filename);
     //
     // remove .lua or .luac
@@ -278,6 +281,7 @@ int LuaStack::executeScriptFile(const char* filename)
             buf = tmpfilename;
         }
     }
+    FileUtils::getInstance()->setPopupNotify(true);
 
     std::string fullPath = utils->fullPathForFilename(buf);
     Data data = utils->getDataFromFile(fullPath);

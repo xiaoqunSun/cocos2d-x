@@ -151,6 +151,8 @@ static void setValueForKey(const char* pKey, const char* pValue)
     {
         doc->SaveFile(FileUtils::getInstance()->getSuitableFOpen(UserDefault::getInstance()->getXMLFilePath()).c_str());
         delete doc;
+        
+        FileUtils::getInstance()->setAsynfs(true);
     }
 }
 

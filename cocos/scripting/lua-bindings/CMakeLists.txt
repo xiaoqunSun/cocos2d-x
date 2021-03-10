@@ -77,6 +77,9 @@ set(lua_bindings_manual_files
     manual/physics3d/lua_cocos2dx_physics3d_manual.cpp
     manual/navmesh/lua_cocos2dx_navmesh_conversions.cpp
     manual/navmesh/lua_cocos2dx_navmesh_manual.cpp
+    ../../../external/lua/cjson/fpconv.c
+    ../../../external/lua/cjson/lua_cjson.c
+    ../../../external/lua/cjson/strbuf.c
     )
 
 set(lua_bindings_auto_headers

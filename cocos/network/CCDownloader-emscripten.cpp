@@ -50,6 +50,7 @@ namespace cocos2d { namespace network {
 
             int bytesReceived;
             unsigned int id;
+            DownloaderEmscripten* downloader;
             emscripten_fetch_t * fetch;
             shared_ptr<const DownloadTask> task;    // reference to DownloadTask, when task finish, release
         };
@@ -85,12 +86,17 @@ namespace cocos2d { namespace network {
             }
             attr.onprogress = DownloaderEmscripten::onProgress;
             attr.onerror = DownloaderEmscripten::onError;
-            attr.timeoutMSecs = this->hints.timeoutInSeconds;
+            if(this->hints.timeoutInSeconds > 0)
+                attr.timeoutMSecs = this->hints.timeoutInSeconds*1000;
             emscripten_fetch_t *fetch = emscripten_fetch(&attr, task->requestURL.c_str());
-            fetch->userData = this;
+            
 
+            static int globalFetchIdCounter = 1;
+            fetch->id = globalFetchIdCounter++;
             DownloadTaskEmscripten *coTask = new DownloadTaskEmscripten(fetch->id);
             coTask->task = task;
+            coTask->downloader = this;
+            fetch->userData = coTask;
             
             DLLOG("DownloaderEmscripten::createCoTask id: %d", coTask->id);
             _taskMap.insert(make_pair(coTask->id, coTask));
@@ -99,10 +105,10 @@ namespace cocos2d { namespace network {
 
         void DownloaderEmscripten::onDataLoad(emscripten_fetch_t *fetch)
         {
-            unsigned int taskId = fetch->id;
+            unsigned int taskId = reinterpret_cast<DownloadTaskEmscripten*>(fetch->userData)->id;
             uint64_t size = fetch->numBytes;
             DLLOG("DownloaderEmscripten::onDataLoad(taskId: %d, size: %d)", taskId, size);
-            DownloaderEmscripten* downloader = reinterpret_cast<DownloaderEmscripten*>(fetch->userData);
+            DownloaderEmscripten* downloader = reinterpret_cast<DownloadTaskEmscripten*>(fetch->userData)->downloader;
             auto iter = downloader->_taskMap.find(taskId);
             if (downloader->_taskMap.end() == iter)
             {
@@ -127,10 +133,10 @@ namespace cocos2d { namespace network {
 
         void DownloaderEmscripten::onLoad(emscripten_fetch_t *fetch)
         {
-            unsigned int taskId = fetch->id;
+            unsigned int taskId = reinterpret_cast<DownloadTaskEmscripten*>(fetch->userData)->id;
             uint64_t size = fetch->numBytes;
             DLLOG("DownloaderEmscripten::onLoad(taskId: %i, size: %i)", taskId, size);
-            DownloaderEmscripten* downloader = reinterpret_cast<DownloaderEmscripten*>(fetch->userData);
+            DownloaderEmscripten* downloader = reinterpret_cast<DownloadTaskEmscripten*>(fetch->userData)->downloader;
             auto iter = downloader->_taskMap.find(taskId);
             if (downloader->_taskMap.end() == iter)
             {
@@ -185,7 +191,9 @@ namespace cocos2d { namespace network {
                 }
 
                 // open file
-                FILE* fp = fopen(util->getSuitableFOpen(storagePath).c_str(), "ab");
+                FILE* fp = fopen(util->getSuitableFOpen(storagePath).c_str(), "w+b");
+                CCLOG("DownloaderEmscripten fopen==>%s",util->getSuitableFOpen(storagePath).c_str());
+            
                 if (nullptr == fp)
                 {
                     errCode = DownloadTask::ERROR_FILE_OP_FAILED;
@@ -197,6 +205,7 @@ namespace cocos2d { namespace network {
 
                 fwrite(fetch->data, size, 1, fp);
                 fclose(fp);
+                FileUtils::getInstance()->setAsynfs(true);
             } while (0);
             emscripten_fetch_close(fetch);
             coTask->fetch = fetch = NULL;
@@ -214,9 +223,9 @@ namespace cocos2d { namespace network {
         {
             uint64_t dlTotal = fetch->totalBytes;
             uint64_t dlNow = fetch->dataOffset;
-            unsigned int taskId = fetch->id;
+            unsigned int taskId = reinterpret_cast<DownloadTaskEmscripten*>(fetch->userData)->id;
             DLLOG("DownloaderEmscripten::onProgress(taskId: %i, dlnow: %d, dltotal: %d)", taskId, dlNow, dlTotal);
-            DownloaderEmscripten* downloader = reinterpret_cast<DownloaderEmscripten*>(fetch->userData);
+            DownloaderEmscripten* downloader = reinterpret_cast<DownloadTaskEmscripten*>(fetch->userData)->downloader;
             auto iter = downloader->_taskMap.find(taskId);
             if (downloader->_taskMap.end() == iter)
             {
@@ -238,14 +247,15 @@ namespace cocos2d { namespace network {
 
         void DownloaderEmscripten::onError(emscripten_fetch_t *fetch)
         {
-            unsigned int taskId = fetch->id;
-            DLLOG("DownloaderEmscripten::onLoad(taskId: %i)", taskId);
-            DownloaderEmscripten* downloader = reinterpret_cast<DownloaderEmscripten*>(fetch->userData);
+            unsigned int taskId = reinterpret_cast<DownloadTaskEmscripten*>(fetch->userData)->id;
+            DLLOG("DownloaderEmscripten::onError(taskId: %i)", taskId);
+            DLLOG("Downloading %s failed, HTTP failure status code: %d.\n", fetch->url, fetch->status);
+            DownloaderEmscripten* downloader = reinterpret_cast<DownloadTaskEmscripten*>(fetch->userData)->downloader;
             auto iter = downloader->_taskMap.find(taskId);
             if (downloader->_taskMap.end() == iter)
             {
                 emscripten_fetch_close(fetch);
-                DLLOG("DownloaderEmscripten::onLoad can't find task with id: %i", taskId);
+                DLLOG("DownloaderEmscripten::onError can't find task with id: %i", taskId);
                 return;
             }
             DownloadTaskEmscripten *coTask = iter->second;

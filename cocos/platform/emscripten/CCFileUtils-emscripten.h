@@ -52,8 +52,11 @@ public:
     /* override functions */
     bool init() override;
     virtual std::string getWritablePath() const override;
+    virtual void setAsynfs(bool v){m_asynfs = v;}
+    virtual bool isAsynfs(){return m_asynfs;}
 private:
     virtual bool isFileExistInternal(const std::string& strFilePath) const override;
+    bool m_asynfs;
 };
 
 // end of platform group

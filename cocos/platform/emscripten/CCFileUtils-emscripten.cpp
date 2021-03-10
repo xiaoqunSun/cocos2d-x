@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 #include "platform/CCPlatformConfig.h"
 #if CC_TARGET_PLATFORM == CC_PLATFORM_EMSCRIPTEN
-
+#include <emscripten.h>
 #include "platform/emscripten/CCFileUtils-emscripten.h"
 #include "platform/emscripten/CCApplication-emscripten.h"
 #include "platform/CCCommon.h"
@@ -54,7 +54,9 @@ FileUtils* FileUtils::getInstance()
 }
 
 FileUtilsEmscripten::FileUtilsEmscripten()
-{}
+{
+    m_asynfs = false;
+}
 
 bool FileUtilsEmscripten::init()
 {
@@ -64,9 +66,10 @@ bool FileUtilsEmscripten::init()
 
 string FileUtilsEmscripten::getWritablePath() const
 {
-    char cwd[FILENAME_MAX] = {0};
-    getcwd(cwd, FILENAME_MAX - 1);
-    cwd[FILENAME_MAX-1] = '\0';
+    char cwd[FILENAME_MAX] = "/cache/";
+    // getcwd(cwd, FILENAME_MAX - 1);
+    // cwd[FILENAME_MAX-1] = '\0';
+    // CCLOG("cwd==>%s",cwd);
     return cwd;
 }
 

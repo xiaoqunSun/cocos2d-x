@@ -856,6 +856,8 @@ public:
      */
     virtual std::string getNewFilename(const std::string &filename) const;
 
+    virtual void setAsynfs(bool v){}
+    virtual bool isAsynfs(){return false;}
 protected:
     /**
      *  The default constructor.

@@ -98,7 +98,13 @@ void LuaWebSocket::onMessage(WebSocket* ws, const WebSocket::Data& data)
         if (data.isBinary) {
             int handler = ScriptHandlerMgr::getInstance()->getObjectHandler((void*)this,ScriptHandlerMgr::HandlerType::WEBSOCKET_MESSAGE);
             if (0 != handler) {
-                SendBinaryMessageToLua(handler, (const unsigned char*)data.bytes, (int)data.len);
+                LuaStack* stack = LuaEngine::getInstance()->getLuaStack();
+                if (nullptr != stack)
+                {
+                    stack->pushString(data.bytes,(int)data.len);
+                    stack->executeFunctionByHandler(handler,  1);
+                }
+                //SendBinaryMessageToLua(handler, (const unsigned char*)data.bytes, (int)data.len);
             }
         }
         else{

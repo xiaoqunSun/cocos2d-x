@@ -37,6 +37,9 @@ extern "C"
 {
     int cocos2dx_lua_loader(lua_State *L)
     {
+        bool notify = FileUtils::getInstance()->isPopupNotify();
+        FileUtils::getInstance()->setPopupNotify(false);
+
         static const std::string BYTECODE_FILE_EXT    = ".luac";
         static const std::string NOT_BYTECODE_FILE_EXT = ".lua";
 
@@ -123,6 +126,7 @@ extern "C"
             begin = next + 1;
             next = searchpath.find_first_of(';', begin);
         } while (begin < searchpath.length());
+        FileUtils::getInstance()->setPopupNotify(true);
         if (chunk.getSize() > 0)
         {
             LuaStack* stack = LuaEngine::getInstance()->getLuaStack();
